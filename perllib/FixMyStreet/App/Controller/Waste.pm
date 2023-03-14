@@ -454,6 +454,7 @@ sub direct_debit_modify : Private {
                 orig_sub => $c->stash->{orig_sub},
                 mandate => $c->stash->{direct_debit_mandate},
         } );
+        $c->detach('/page_error_400_bad_request', ['There was an error requesting a direct debit payment']) unless $one_off_ref;
     }
 
     my $update_ref = $i->amend_plan( {
@@ -462,6 +463,7 @@ sub direct_debit_modify : Private {
         orig_sub => $c->stash->{orig_sub},
         mandate => $c->stash->{direct_debit_mandate},
     } );
+    $c->detach('/page_error_400_bad_request', ['There was an error amending your direct debit']) unless $update_ref;
 }
 
 sub direct_debit_cancel_sub : Private {
