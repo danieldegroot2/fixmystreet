@@ -1888,11 +1888,13 @@ sub redirect_or_confirm_creation : Private {
 
     # otherwise email or text a confirm token to them.
     my $thing = 'email';
+    my $redirect;
     if ($report->user->email_verified) {
         $c->forward( 'send_problem_confirm_email' );
         # tell user that they've been sent an email
         $c->stash->{template}   = 'email_sent.html';
         $c->stash->{email_type} = 'problem';
+        $redirect = $c->uri_for_action( '/report/confirmation', [ $report->id ] );
     } elsif ($report->user->phone_verified) {
         $c->forward( 'send_problem_confirm_text' );
         $thing = 'text';
@@ -1901,6 +1903,9 @@ sub redirect_or_confirm_creation : Private {
     }
     $c->stash->{sent_confirmation_message} = 1;
     $c->log->info($report->user->id . ' created ' . $report->id . ", $thing sent, " . ($c->stash->{token_data}->{password} ? 'password set' : 'password not set'));
+    if ($redirect) {
+        return $c->res->redirect($redirect);
+    }
 }
 
 sub create_related_things : Private {
