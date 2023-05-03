@@ -174,7 +174,8 @@ sub load_problem_or_display_error : Private {
     elsif ( $problem->state eq 'unconfirmed' ) {
         $c->detach( '/page_error_404_not_found', [ _('Unknown problem ID') ] )
             unless $c->cobrand->show_unconfirmed_reports
-            or $c->action eq 'report/confirmation';
+            or $c->action eq 'report/confirmation'
+            or $c->action eq 'report/update_confirmation';
     }
     elsif ( $problem->hidden_states->{ $problem->state } ) {
         $c->detach(
@@ -677,6 +678,14 @@ sub confirmation :Chained('id') :Args(0) {
         $c->stash->{created_report} = $c->get_param('created_report');
         $c->stash->{report} = $c->stash->{problem};
     }
+
+}
+
+sub update_confirmation :Chained('id') :Args(1) {
+    my ($self, $c, $id) = @_;
+
+    $c->stash->{template}   = 'email_sent.html';
+    $c->stash->{email_type} = 'update';
 
 }
 
