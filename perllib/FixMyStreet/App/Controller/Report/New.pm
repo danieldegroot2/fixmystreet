@@ -1846,8 +1846,10 @@ has been confirmed or email them a token if it has not been.
 =cut
 
 sub redirect_or_confirm_creation : Private {
-    my ( $self, $c ) = @_;
+    my ( $self, $c, $no_redirect ) = @_;
     my $report = $c->stash->{report};
+
+    $no_redirect //= 0;
 
     # If confirmed send the user straight there.
     if ( $report->confirmed ) {
@@ -1872,9 +1874,11 @@ sub redirect_or_confirm_creation : Private {
             $c->log->info($report->user->id . ' was logged in, redirecting to confirmation page for ' . $report->id);
             $c->stash->{created_report} = 'loggedin';
             $c->stash->{template} = 'tokens/confirm_problem.html';
-            my $redirect = $c->uri_for_action( '/report/confirmation', [ $report->id ] );
-            $redirect .= "?created_report=loggedin&template=confirm_problem";
-            return $c->res->redirect($redirect);
+            unless ($no_redirect) {
+                my $redirect = $c->uri_for_action( '/report/confirmation', [ $report->id ] );
+                $redirect .= "?created_report=loggedin&template=confirm_problem";
+                return $c->res->redirect($redirect);
+            }
         }
         return 1;
     }
@@ -1897,8 +1901,10 @@ sub redirect_or_confirm_creation : Private {
         # tell user that they've been sent an email
         $c->stash->{template}   = 'email_sent.html';
         $c->stash->{email_type} = 'problem';
-        $redirect = $c->uri_for_action( '/report/confirmation', [ $report->id ] );
-        $redirect .= "?template=email_sent";
+        unless ($no_redirect) {
+            $redirect = $c->uri_for_action( '/report/confirmation', [ $report->id ] );
+            $redirect .= "?template=email_sent";
+        }
     } elsif ($report->user->phone_verified) {
         $c->forward( 'send_problem_confirm_text' );
         $thing = 'text';
