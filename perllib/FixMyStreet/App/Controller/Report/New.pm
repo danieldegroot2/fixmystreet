@@ -1869,9 +1869,12 @@ sub redirect_or_confirm_creation : Private {
             $c->log->info($report->user->id . ' is an inspector - redirecting straight to report page for ' . $report->id);
             $c->res->redirect( $report->url );
         } else {
-            $c->log->info($report->user->id . ' was logged in, showing confirmation page for ' . $report->id);
+            $c->log->info($report->user->id . ' was logged in, redirecting to confirmation page for ' . $report->id);
             $c->stash->{created_report} = 'loggedin';
             $c->stash->{template} = 'tokens/confirm_problem.html';
+            my $redirect = $c->uri_for_action( '/report/confirmation', [ $report->id ] );
+            $redirect .= "?created_report=loggedin&template=confirm_problem";
+            return $c->res->redirect($redirect);
         }
         return 1;
     }
@@ -1895,6 +1898,7 @@ sub redirect_or_confirm_creation : Private {
         $c->stash->{template}   = 'email_sent.html';
         $c->stash->{email_type} = 'problem';
         $redirect = $c->uri_for_action( '/report/confirmation', [ $report->id ] );
+        $redirect .= "?template=email_sent";
     } elsif ($report->user->phone_verified) {
         $c->forward( 'send_problem_confirm_text' );
         $thing = 'text';

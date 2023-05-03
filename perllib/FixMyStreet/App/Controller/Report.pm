@@ -174,8 +174,7 @@ sub load_problem_or_display_error : Private {
     elsif ( $problem->state eq 'unconfirmed' ) {
         $c->detach( '/page_error_404_not_found', [ _('Unknown problem ID') ] )
             unless $c->cobrand->show_unconfirmed_reports
-            or $c->action eq 'report/confirmation'
-            or $c->action eq 'report/update_confirmation';
+            or $c->action eq 'report/confirmation';
     }
     elsif ( $problem->hidden_states->{ $problem->state } ) {
         $c->detach(
@@ -664,16 +663,20 @@ sub map :Chained('id') :Args(0) {
 sub confirmation :Chained('id') :Args(0) {
     my ($self, $c) = @_;
 
-    $c->stash->{template}   = 'email_sent.html';
-    $c->stash->{email_type} = 'problem';
+    my $template = $c->get_param('template') || "";
 
-}
+    if ($template !~ /^(email_sent|confirm_problem)$/) {
+        $c->detach( '/page_error_404_not_found', [] );
+    }
 
-sub update_confirmation :Chained('id') :Args(1) {
-    my ($self, $c, $id) = @_;
-
-    $c->stash->{template}   = 'email_sent.html';
-    $c->stash->{email_type} = 'update';
+    if ($template eq 'email_sent') {
+        $c->stash->{template} = 'email_sent.html';
+        $c->stash->{email_type} = 'problem';
+    } elsif ($template eq 'confirm_problem') {
+        $c->stash->{template} = 'tokens/confirm_problem.html';
+        $c->stash->{created_report} = $c->get_param('created_report');
+        $c->stash->{report} = $c->stash->{problem};
+    }
 
 }
 
