@@ -11,7 +11,7 @@
     float: #{$left}; // shrink to width of child elements
     min-width: 100%; // always at least as wide as its .multi-select-button sibling
     background: #fff;
-    margin: 1em 0;
+    margin: 1.5em 0;
     border: 1px solid #aaa;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
     display: none;
@@ -35,12 +35,25 @@
     }
 }
 
-.multi-select-menuitem--titled:before {
-    display: block;
-    font-weight: bold;
-    content: attr(data-group-title);
-    margin: 0 0 0.25em -20px;
-    cursor: default;
+.multi-select-menuitem--titled {
+
+    &:before {
+        display: block;
+        font-weight: bold;
+        content: attr(data-group-title);
+        margin: 0 0 0.25em -20px;
+        cursor: default;
+    }
+
+    &.govuk-checkboxes__item {
+        margin-top: 1.85em;
+        &:before {
+            position: absolute;
+            left: 1em;
+            top: -1.5em;
+        }
+    }
+    
 }
 
 .multi-select-menuitem--titledsr:before {
@@ -141,6 +154,7 @@
 .multi-select-container--open {
     .multi-select-menu {
         display: block;
+        padding: 0 1em;
     }
 
     .multi-select-button:after {

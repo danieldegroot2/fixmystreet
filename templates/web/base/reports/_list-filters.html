@@ -1,4 +1,5 @@
 [% select_status = PROCESS 'reports/_list-filter-status.html' %]
+[% PROCESS 'govuk/fields.html' %]
 
 [%# We want to only select things that match all filters, if filters are provided ~%]
 [% BLOCK category_options %]
