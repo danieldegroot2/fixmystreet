@@ -2,7 +2,6 @@
 @import "../sass/layout";
 
 // Header
-
 .header-search .site-search .form-control {
     // overrides from default .form-control
     @include border-radius(0);
@@ -52,10 +51,6 @@
     h2 {
         font-weight: normal;
         font-size: 1.5em;
-    }
-    #postcodeForm {
-        margin-top: 0;
-        padding-top: 0;
     }
 
     a {

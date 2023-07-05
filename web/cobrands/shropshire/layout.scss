@@ -101,22 +101,17 @@ body {
 }
 
 #front-main {
-    margin: 0 auto;
     margin-top: 20px;
-    padding: 0 1em;
-    max-width: $container-max-width;
-    background: transparent;
 
     #front-main-container {
         max-width: none;
-        background: #fff;
         padding: 4%;
         border-radius: 7px;
     }
+}
 
-    #postcodeForm {
-        overflow: visible;
-    }
+.postcode-form-box {
+    overflow: visible;
 }
 
 .content {

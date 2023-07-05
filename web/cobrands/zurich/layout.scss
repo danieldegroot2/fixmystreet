@@ -140,22 +140,15 @@ body.frontpage {
 }
 
 #front-main {
-  background-color: inherit;
-  color: inherit;
   margin: 0 0 2em 0;
-  #postcodeForm div {
+}
+
+.postcode-form-box div {
     border-color: $dark_blue;
     input#pc {
       max-width: none;
     }
   }
-}
-
-#front-main #postcodeForm {
-    .form-hint {
-        color: inherit;
-    }
-}
 
 #zurich-main-nav {
   margin: -1em -1em 1em -1em; // -1em spreads back out over content's 1em padding

@@ -51,10 +51,13 @@ h1, h2, h3 {
   }
 }
 
-#front-main #postcodeForm div input#sub {
-  background-color: $lincs-pop;
-  font-family: 'Roboto', 'Arial', sans-serif;
-  font-weight: bold;
+.postcode-form-box div {
+  border-color: $lincs-border;
+  input#sub {
+    background-color: $lincs-link;
+    font-family: 'Roboto', 'Arial', sans-serif;
+    font-weight: bold;
+  }
 }
 
 #front-howto #front_stats {
@@ -113,13 +116,6 @@ body.mappage .big-green-banner {
   h2 {
     font-family: 'Roboto', 'Arial', sans-serif;
     font-weight: normal;
-  }
-
-  #postcodeForm div {
-    border-color: $lincs-border;
-    input#sub {
-      background-color: $lincs-link;
-    }
   }
 }
 

@@ -128,25 +128,15 @@ $mappage-navbar-height: 64px;
 }
 
 #front-main {
-    margin: 0 auto;
     margin-top: 75px;
-    padding: 0 1em;
-    max-width: $container-max-width;
-    background: transparent;
 
     #front-main-container {
-        max-width: none;
-        background: #fff;
         padding: 4%;
-
-        h1 {
-            color: $primary;
-        }
     }
+}
 
-    #postcodeForm {
-        overflow: visible;
-    }
+.postcode-form-box {
+    overflow: visible;
 }
 
 .content {
