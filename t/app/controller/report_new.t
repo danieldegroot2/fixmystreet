@@ -1206,7 +1206,7 @@ subtest "test Hart" => sub {
             is $report->bodies_str, $body_ids{$test->{council}};
 
             if ( $test->{confirm} ) {
-                is $mech->uri->path, "/report/new";
+                is $mech->uri->path, "/report/" . $report->id . "/confirmation";
                 my $base = 'www.fixmystreet.com';
                 $base = '"' unless $test->{national};
                 $mech->content_contains("$base/report/" . $report->id, "links to correct site");

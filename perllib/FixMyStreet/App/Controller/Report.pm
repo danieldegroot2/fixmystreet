@@ -158,11 +158,13 @@ sub load_problem_or_display_error : Private {
 
     my $attrs = { prefetch => 'contact' };
 
+    my $problems_rs = FixMyStreet::DB->resultset('Problem'); # $c->cobrand->problems
+
     # try to load a report if the id is a number
     my $problem
       = ( !$id || $id =~ m{\D} ) # is id non-numeric?
       ? undef                    # ...don't even search
-      : $c->cobrand->problems->find( { id => $id }, $attrs )
+      : $problems_rs->find( { id => $id }, $attrs )
           or $c->detach( '/page_error_404_not_found', [ _('Unknown problem ID') ] );
 
     # check that the problem is suitable to show.
