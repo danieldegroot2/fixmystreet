@@ -6,23 +6,25 @@
     </div>
   [% END %]
     <div id="front-main">
-      <div id="front-main-container">
-        <h1>[% loc('Bins, rubbish and recycling') %]</h1>
-        <form class="postcode-form-box" method="post" id="postcodeForm">
-          <label for="pc">[% loc('Postcode') %]</label>
-          <div>
-              <input type="text" name="postcode" value="[% pc | html %]" id="pc" size="10" maxlength="200" required aria-describedby="pc-hint">
-              [% INCLUDE 'around/_postcode_submit_button.html' attr='id="sub"' %]
-          </div>
-          <ul>
-            <li>Find your bin collection days</li>
-            <li>Report a missed bin collection</li>
-            <li>Order new or additional bins</li>
-            <li>Subscribe to garden waste collection service</li>
-          </ul>
-      </form>
+      <div class="container">
+        <div id="front-main-container">
+          <h1>[% loc('Bins, rubbish and recycling') %]</h1>
+          <form class="postcode-form-box" method="post" id="postcodeForm">
+            <label for="pc">[% loc('Postcode') %]</label>
+            <div>
+                <input type="text" name="postcode" value="[% pc | html %]" id="pc" size="10" maxlength="200" required aria-describedby="pc-hint">
+                [% INCLUDE 'around/_postcode_submit_button.html' attr='id="sub"' %]
+            </div>
+            <ul>
+              <li>Find your bin collection days</li>
+              <li>Report a missed bin collection</li>
+              <li>Order new or additional bins</li>
+              <li>Subscribe to garden waste collection service</li>
+            </ul>
+          </form>
+        </div>
       </div>
-  </div>
+    </div>
 [% END %]
 [% PROCESS 'waste/header.html' %]
 [% INCLUDE footer.html %]
