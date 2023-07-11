@@ -2416,7 +2416,7 @@ label .muted {
 .form-hint {
   display: block;
   color: $form-hint-color;
-  margin-bottom: 0.5em;
+  margin-bottom: 0.5em !important;
 
   // Reduce space between labels and their form-hints
   label + & {
