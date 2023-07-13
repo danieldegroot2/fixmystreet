@@ -192,10 +192,8 @@ sub responsible_for_areas {
         # This will need changing for two tier councils
         if (scalar(%$councils) == 1 && (values %$councils)[0]->{id} eq $self->council_area_id->[0]) {
             return 1;
-        } elsif ($self->check_report_is_on_cobrand_asset) {
-            return 1;
         } else {
-            return 0;
+            return $self->check_report_is_on_cobrand_asset($self->council_area);
         }
     } else {
         # The majority of cobrands only cover a single area, but e.g. Northamptonshire
@@ -410,10 +408,7 @@ sub munge_report_new_bodies {
         $thamesmead->munge_thamesmead_body($bodies);
     }
 
-    if ( $bodies{'Bristol City Council'} ) {
-        my $bristol = FixMyStreet::Cobrand::Bristol->new({ c => $self->{c} });
-        $bristol->munge_overlapping_asset_bodies($bodies);
-    }
+    $self->call_hook(munge_overlapping_asset_bodies => $bodies);
 }
 
 sub munge_report_new_contacts {
@@ -451,6 +446,9 @@ sub munge_report_new_contacts {
         my $nh = FixMyStreet::Cobrand::HighwaysEngland->new({ c => $self->{c} });
         $nh->national_highways_cleaning_groups($contacts);
     }
+
+    $self->call_hook(munge_cobrand_asset_categories => $contacts);
+
 }
 
 =item wasteworks_config
