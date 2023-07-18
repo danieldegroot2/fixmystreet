@@ -22,11 +22,14 @@ $front-main-color-desktop: $primary_text !default;
 // $front-main-background-desktop controls the background of the #front-main element. This is a full width element.
 $front-main-background-desktop: transparent !default;
 // $front-main-container-desktop changes the background of h1, h2, but without using the full width.
-$front-main-container-background-desktop: $front-main-background-desktop !default;
+$front-main-container-background-desktop: transparent !default;
 // $postcodeform-background-desktop controls the background of the postcode-form-box. It excludes the h1 and h2 elements.
 $postcodeform-background-desktop: transparent !default;
 $form-hint-color-desktop: transparentize($front-main-color-desktop, 0.2) !default;
 $front-main-h2-color-desktop: transparentize($front-main-color-desktop, 0.1) !default;
+
+//This variable controls the color of .content for the front-page
+$content-background-desktop: #fff !default;
 
 .internal-link-fixed-header {
     display: block;
@@ -171,10 +174,22 @@ h1 {
 
 // .content Is the white box
 .content {
-  margin: 1em 0 0 0;
-  padding: 1em;
-  background: #fff;
+  margin: 1em -1em 0 -1em;
   color: #222;
+  background: #fff;
+  padding: 1em;
+}
+
+.frontpage {
+  .content {
+    margin: 1em 0 0 0;
+    background: $content-background-desktop;
+    @if (($postcodeform-background-desktop == $content-background-desktop) or($content-background-desktop == $front-main-container-background-desktop) or($content-background-desktop == $base_bg)) {
+      padding: 1em 0;
+    } @else {
+      padding: 1em;
+    }
+  }
 }
 
 // map page - has fixed header and different styling
@@ -838,11 +853,14 @@ textarea.form-error {
   padding: 1em;
   margin: 0 auto;
   #front-main-container {
+    box-sizing: border-box;
     max-width: $container-max-width;
     margin: 0 auto;
     background: $front-main-container-background-desktop;
     @if not (($front-main-container-background-desktop == transparent) or ($front-main-container-background-desktop == none)) {
       padding: 1em;
+    } @else {
+      padding: 1em 0em;
     }
   }
   h2 {
