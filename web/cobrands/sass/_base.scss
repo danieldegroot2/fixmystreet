@@ -2666,10 +2666,15 @@ label .muted {
 }
 
 .postcode-form-box {
-  margin: 0 -1em;
-  padding: 1em;
   color: $front-main-color;
   background: $postcodeform-background;
+  @if not (($postcodeform-background == transparent) or ($postcodeform-background == none)) {
+    padding: 1em;
+    margin: 0 -1em;
+  } @else {
+    padding: 1em 0em;
+    margin: 0;
+  }
   font-family: $meta-font;
   label {
     margin-top: 0;

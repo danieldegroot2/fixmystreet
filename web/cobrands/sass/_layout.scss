@@ -174,7 +174,6 @@ h1 {
 
 // .content Is the white box
 .content {
-  margin: 1em -1em 0 -1em;
   color: #222;
   background: #fff;
   padding: 1em;
@@ -184,10 +183,10 @@ h1 {
   .content {
     margin: 1em 0 0 0;
     background: $content-background-desktop;
-    @if (($postcodeform-background-desktop == $content-background-desktop) or($content-background-desktop == $front-main-container-background-desktop) or($content-background-desktop == $base_bg)) {
-      padding: 1em 0;
-    } @else {
+    @if not ($content-background-desktop == $base_bg) {
       padding: 1em;
+    } @else {
+      padding: 1em 0;
     }
   }
 }
@@ -851,7 +850,7 @@ textarea.form-error {
   color: $front-main-color-desktop;
   background: $front-main-background-desktop;
   padding: 1em;
-  margin: 0 auto;
+  margin: 0;
   #front-main-container {
     box-sizing: border-box;
     max-width: $container-max-width;
@@ -873,6 +872,14 @@ textarea.form-error {
 .postcode-form-box {
   color: $front-main-color-desktop;
   background:$postcodeform-background-desktop;
+  @if not (($postcodeform-background-desktop == transparent) or ($postcodeform-background-desktop == none)) {
+    padding: 1em;
+    margin: 0 -1em;
+  } @else {
+    padding: 1em 0em;
+    margin: 0 auto;
+    padding-bottom: 0;
+  }
   overflow:hidden;
   label {
     margin:0.5em 0;
