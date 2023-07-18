@@ -862,6 +862,9 @@ textarea.form-error {
       padding: 1em 0em;
     }
   }
+  .form-hint {
+    margin-top: -0.25em;
+  }
   h2 {
     font-style:normal;
     margin:0;
@@ -886,7 +889,6 @@ textarea.form-error {
   }
   .form-hint {
       color: $form-hint-color-desktop;
-      margin-top: -0.25em;
   }
   div {
     width:20em;
