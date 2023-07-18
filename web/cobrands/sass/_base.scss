@@ -2416,7 +2416,6 @@ label .muted {
 .form-hint {
   display: block;
   color: $form-hint-color;
-  margin-bottom: 0.5em !important;
 
   // Reduce space between labels and their form-hints
   label + & {
@@ -2649,6 +2648,9 @@ label .muted {
     font-size: 1.1875em;
     color: $front-main-h2-color;
   }
+  .form-hint {
+    margin-bottom: 0.5em;
+  }
   p {
     margin: 0.5em 0 0;
   }
@@ -2668,9 +2670,6 @@ label .muted {
   font-family: $meta-font;
   label {
     margin-top: 0;
-  }
-  .form-hint {
-    margin-bottom: 0.5em;
   }
   div {
     @include flex-container;
