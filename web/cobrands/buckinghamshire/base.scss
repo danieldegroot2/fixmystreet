@@ -106,7 +106,6 @@ dl dt {
 .postcode-form-box div {
   input#sub {
     @include bucks-button();
-    box-shadow: 0;
   }
 }
 
