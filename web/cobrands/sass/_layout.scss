@@ -177,11 +177,11 @@ h1 {
   color: #222;
   background: #fff;
   padding: 1em;
+  margin: 1em 0 0 0;
 }
 
 .frontpage {
   .content {
-    margin: 1em 0 0 0;
     background: $content-background-desktop;
     @if not ($content-background-desktop == $base_bg) {
       padding: 1em;
