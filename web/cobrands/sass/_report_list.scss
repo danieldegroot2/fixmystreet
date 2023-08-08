@@ -63,9 +63,9 @@
   }
 
   .multi-select-button {
-    max-width: 10em;
-    padding: flip(0 1.5em 0 0.6em, 0 0.6em 0 1.5em);
-    line-height: 1.8em;
+    box-sizing: border-box;
+    max-width: 100%;
+    padding: flip(0.4em 1.5em 0.4em 0.6em, 0.4em 0.6em 0.4em 1.5em);
     vertical-align: top;
   }
 
