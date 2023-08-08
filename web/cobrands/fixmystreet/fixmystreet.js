@@ -917,6 +917,22 @@ $.extend(fixmystreet.set_up, {
     }
     update_label('#statuses', translation_strings.select_status_aria_label);
     update_label('#filter_categories', translation_strings.select_category_aria_label);
+
+    function add_wrapper(id) {
+        var select = $(id);
+        var span = $(id).prev('span');
+        var multiSelect = $(id).next('.multi-select-container');
+        var multiSelectGroupclassName = 'multi-select-group' + ' ' + 'is--' + id.substring(1);
+        var multiSelectGroupDiv = $("<div></div>").prop({
+            class: multiSelectGroupclassName,
+          });
+        var multiSelectGroup= document.getElementsByClassName(multiSelectGroupclassName);
+
+        $(multiSelect).after(function(){ return $(multiSelectGroupDiv); });
+        $(multiSelectGroup).append(span, multiSelect, select);
+    }
+    add_wrapper('#statuses');
+    add_wrapper('#filter_categories');
   },
 
   label_accessibility_update: function() {

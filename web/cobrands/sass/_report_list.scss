@@ -54,7 +54,6 @@
   }
 
   .multi-select-container {
-    margin: 0 0.2em;
     color: #000;
   }
 
@@ -97,4 +96,10 @@ input.bulk-assign {
     float: right;
     margin: 2em;
     transform: scale(2);
+}
+
+.multi-select-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1em;
 }
