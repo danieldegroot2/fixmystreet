@@ -329,19 +329,19 @@ body.mappage .mysoc-footer {
 
 // FMS Pro advert
 footer {
-  background: $base_bg; // (images/tile.jpg)
   margin: -1em;
-  padding: 1em 0;
+  padding: 1em 0 0 0;
 
-  @media ($high-dpi-screen) {
-    background-image: url(/cobrands/fixmystreet.com/images/tile@2x.jpg);
-    background-size: 500px;
+  .twothirdswidthpage & {
+    margin:0 -2em
   }
 }
 
 .fms-pro-promo {
     @include clearfix();
     @include flex-container();
+    display: flex;
+    flex-direction: column;
 
     margin: 1em 0 3em 0;
 
@@ -364,53 +364,52 @@ footer {
 .fms-pro-promo__pro,
 .fms-pro-promo__stats {
     @include box-sizing(border-box);
-    float: left;
     padding: 2em;
 
     @media (min-width: 60em) {
-        padding: 3em;
-    }
-}
-
-.fms-pro-promo__pro {
-    width: 40%;
-    background: $primary url(/cobrands/fixmystreet.com/images/tile-y.jpg) 0 0 repeat;
-
-    @media ($high-dpi-screen) {
-        background-image: url(/cobrands/fixmystreet.com/images/tile-y@2x.jpg);
-        background-size: 500px;
+        padding: 2em;
     }
 }
 
 .fms-pro-promo__stats {
-    width: 56%;
-    margin-left: 4%;
     border-bottom: none;
     background: #fff;
     position: relative;
 
-    &:before {
-        content: "NEW";
-        display: block;
+    .bookmark-ribbon {
+        $height: 35px;
         position: absolute;
-        top: -0.5em;
-        right: 0.5em;
+        left: 0;
+        top: 1em;
+        width: 100px;
+        height: $height;
+        padding-left: 0.5em;
         background: $primary;
-        font-weight: bold;
-        width: 4em;
-        line-height: 4em;
-        text-align: center;
-        border-radius: 100%;
-        transform: rotate(5deg);
+        clip-path: polygon(0% 0%, 100% 0%, calc(100% - 20px) 50%, 100% 100%, 0% 100%);
+
+        span {
+            display: block;
+            line-height: $height;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        & + h2 {
+            padding-top: 1em;
+        }
+    }
+
+    .twothirdswidthpage & {
+        .bookmark-ribbon {
+            top: 1em;
+            left: 1em;
+        }
     }
 }
 
 .footer-marketing {
-  color: #ccc;
-
-  a {
-      color: white;
-  }
+    margin: 0;
+    width: auto;
 }
 
 .healthcheck-unit {
