@@ -329,83 +329,66 @@ body.mappage .mysoc-footer {
 
 // FMS Pro advert
 footer {
-  margin: -1em;
-  padding: 1em 0 0 0;
-
-  .twothirdswidthpage & {
-    margin:0 -2em
+    background: $base_bg; // (images/tile.jpg)
+    margin: -1em;
+    padding: 1em 0;
+  
+    @media ($high-dpi-screen) {
+      background-image: url(/cobrands/fixmystreet.com/images/tile@2x.jpg);
+      background-size: 500px;
+    }
   }
-}
-
-.fms-pro-promo {
-    @include clearfix();
-    @include flex-container();
-    display: flex;
-    flex-direction: column;
-
-    margin: 1em 0 3em 0;
-
-    h2 {
-        font-family: inherit;
-        font-weight: bold;
-    }
-
-    @media (min-width: 60em) {
-        p {
-            font-size: 1.2em;
-        }
-
-        h2 {
-            font-size: 2em;
-        }
-    }
-}
-
-.fms-pro-promo__pro,
-.fms-pro-promo__stats {
-    @include box-sizing(border-box);
-    padding: 2em;
-
-    @media (min-width: 60em) {
-        padding: 2em;
-    }
-}
-
-.fms-pro-promo__stats {
-    border-bottom: none;
-    background: #fff;
-    position: relative;
-
-    .bookmark-ribbon {
-        $height: 35px;
-        position: absolute;
-        left: 0;
-        top: 1em;
-        width: 100px;
-        height: $height;
-        padding-left: 0.5em;
-        background: $primary;
-        clip-path: polygon(0% 0%, 100% 0%, calc(100% - 20px) 50%, 100% 100%, 0% 100%);
-
-        span {
-            display: block;
-            line-height: $height;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-
-        & + h2 {
-            padding-top: 1em;
-        }
-    }
-
-    .twothirdswidthpage & {
-        .bookmark-ribbon {
-            top: 1em;
-            left: 1em;
-        }
-    }
-}
+  
+  .fms-pro-promo {
+      @include clearfix();
+      @include flex-container();
+  
+      margin: 1em 0 3em 0;
+  
+      h2 {
+          font-family: inherit;
+          font-weight: bold;
+      }
+  
+      @media (min-width: 60em) {
+          p {
+              font-size: 1.2em;
+          }
+  
+          h2 {
+              font-size: 2em;
+          }
+      }
+  }
+  
+  .fms-pro-promo__pro,
+  .fms-pro-promo__stats {
+      @include box-sizing(border-box);
+      float: left;
+      padding: 2em;
+  
+      @media (min-width: 60em) {
+          padding: 3em;
+      }
+  }
+  
+  .fms-pro-promo__pro {
+      width: 40%;
+      background: $primary url(/cobrands/fixmystreet.com/images/tile-y.jpg) 0 0 repeat;
+  
+      @media ($high-dpi-screen) {
+          background-image: url(/cobrands/fixmystreet.com/images/tile-y@2x.jpg);
+          background-size: 500px;
+      }
+  }
+  
+  .fms-pro-promo__stats {
+      width: 56%;
+      margin-left: 4%;
+      border-bottom: none;
+      background: #fff;
+      position: relative;
+  }
 
 .footer-marketing {
     margin: 0;
