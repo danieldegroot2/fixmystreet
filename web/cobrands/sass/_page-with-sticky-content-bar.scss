@@ -76,7 +76,7 @@ body.page-with-sticky-content-bar {
     .container .content {
       // overloaded selector to match default .content styling
       position: relative;
-      padding: flip(1.5em 2em 0em 16em, 1.5em 16em 0em 2em);
+      padding: flip(1.5em 2em 1.5em 16em, 1.5em 16em 1.5em 2em);
   
       & > :last-child {
         margin-bottom: 0;
