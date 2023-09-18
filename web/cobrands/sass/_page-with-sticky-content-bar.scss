@@ -4,7 +4,7 @@ $aside-top: calc(4em + 2em) !default;
 $mobile-sticky-sidebar-button-bg: $primary !default;
 $mobile-sticky-sidebar-button-menu-image: "menu-black" !default;
 
-body.page-with-sticky-content-bar {
+body.twothirdswidthpage {
   #site-header + .container {
     // This used to be on all containers, but there was a bug in Chrome, so now
     // it's just here so that the sidebar links are still clickable with their
