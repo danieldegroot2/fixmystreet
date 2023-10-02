@@ -1399,6 +1399,8 @@ FixMyStreet::override_config {
     $p->set_extra_metadata('payerReference', $dd_ref);
     $p->update;
 
+    $dd->mock('get_payer', sub { 'Active' });
+
     subtest 'check modify sub direct debit payment' => sub {
         my $echo = Test::MockModule->new('Integrations::Echo');
         $echo->mock('GetServiceUnitsForObject', \&garden_waste_one_bin);
@@ -1434,9 +1436,11 @@ FixMyStreet::override_config {
             reference => $new_report->id,
             comments => '',
             date => $ad_hoc_payment_date,
+            mandate => undef,
         }, "correct direct debit ad hoc payment params sent";
         is_deeply $dd_sent_params->{amend_plan}, {
             payer_reference => $dd_ref,
+            mandate => undef,
             amount => '40.00',
         }, "correct direct debit amendment params sent";
         $new_report->delete;
@@ -1470,13 +1474,13 @@ FixMyStreet::override_config {
         is $dd_sent_params->{one_off_payment}, undef, "no one off payment if reducing bin count";
         is_deeply $dd_sent_params->{amend_plan}, {
             payer_reference => $dd_ref,
+            mandate => undef,
             amount => '20.00',
         }, "correct direct debit amendment params sent";
     };
 
     subtest 'renew direct debit sub' => sub {
         set_fixed_time('2021-03-09T17:00:00Z'); # After sample data collection
-        $dd->mock('get_payer', sub { 'Active' });
 
         $mech->get_ok('/waste/12345');
         $mech->content_lacks('Renew subscription today');
@@ -1502,14 +1506,6 @@ FixMyStreet::override_config {
 
         $p->state('confirmed');
         $p->update;
-        $dd->mock('get_payer', sub { });
-    };
-
-    subtest 'renew direct debit after expiry' => sub {
-        set_fixed_time('2021-04-09T17:00:00Z'); # After expiry
-        $mech->get_ok('/waste/12345');
-        $mech->content_contains('Renew subscription today');
-        set_fixed_time('2021-03-09T17:00:00Z');
     };
 
     subtest 'cancel direct debit sub' => sub {
@@ -1528,11 +1524,21 @@ FixMyStreet::override_config {
         is $new_report->state, 'unconfirmed', 'report confirmed';
 
         is_deeply $dd_sent_params->{cancel_plan}, {
+            mandate => undef,
             payer_reference => $dd_ref,
         }, "correct direct debit cancellation params sent";
 
         $mech->get_ok('/waste/12345');
         $mech->content_contains('Cancellation in progress');
+    };
+
+    $dd->mock('get_payer', sub { });
+
+    subtest 'renew direct debit after expiry' => sub {
+        set_fixed_time('2021-04-09T17:00:00Z'); # After expiry
+        $mech->get_ok('/waste/12345');
+        $mech->content_contains('Renew subscription today');
+        set_fixed_time('2021-03-09T17:00:00Z');
     };
 
     $p->update_extra_field({ name => 'payment_method', value => 'credit_card' });
@@ -2011,10 +2017,13 @@ FixMyStreet::override_config {
         $mech->content_contains('This property has a direct debit subscription which will renew');
 
         $mech->get_ok('/waste/12345/garden_modify');
+        $mech->content_contains('could not locate an existing Direct Debit');
+        $dd->mock('get_payer', sub { 'Active' });
+        $mech->get_ok('/waste/12345/garden_modify');
         $mech->content_contains('can only be updated by the original user');
-
         $mech->get_ok('/waste/12345/garden_cancel');
         $mech->content_contains('can only be updated by the original user');
+        $dd->mock('get_payer', sub { });
     };
 
     $report->update_extra_field({ name => 'payment_method', value => 'credit_card' });
@@ -2615,104 +2624,15 @@ FixMyStreet::override_config {
         is $mech->uri->path, '/auth', 'have to be logged in to modify subscription';
         $mech->log_in_ok($user->email);
         $mech->get_ok('/waste/12345/garden_modify');
-        $mech->submit_form_ok({ with_fields => { task => 'modify' } });
-        $mech->submit_form_ok({ with_fields => { current_bins => 1, bins_wanted => 2 } });
-        $mech->content_contains('40.00');
-        $mech->content_contains('7.50');
-        $mech->submit_form_ok({ with_fields => { tandc => 1 } });
-        is $sent_params->{items}[0]{amount}, 750, 'correct amount used';
-
-        my ( $token, $new_report, $report_id ) = get_report_from_redirect( $sent_params->{returnUrl} );
-
-        is $new_report->category, 'Garden Subscription', 'correct category on report';
-        is $new_report->title, 'Garden Subscription - Amend', 'correct title on report';
-        is $new_report->get_extra_field_value('payment_method'), 'credit_card', 'correct payment method on report';
-        is $new_report->state, 'unconfirmed', 'report not confirmed';
-
-        $new_report->discard_changes;
-        is $new_report->get_extra_metadata('scpReference'), '12345', 'correct scp reference on report';
-        is $new_report->get_extra_field_value('Subscription_Details_Quantity'), 2, 'correct bin count';
-        is $new_report->get_extra_field_value('Subscription_Details_Container_Type'), 44, 'correct bin type';
-        is $new_report->get_extra_field_value('Container_Instruction_Container_Type'), 44, 'correct container request bin type';
-        is $new_report->get_extra_field_value('Container_Instruction_Action'), 1, 'correct container request action';
-        is $new_report->get_extra_field_value('Container_Instruction_Quantity'), 1, 'correct container request count';
-
-        $mech->get_ok("/waste/pay_complete/$report_id/$token");
-        is $sent_params->{scpReference}, 12345, 'correct scpReference sent';
-
-        $new_report->discard_changes;
-        is $new_report->state, 'confirmed', 'report confirmed';
-        is $new_report->get_extra_metadata('payment_reference'), '54321', 'correct payment reference on report';
-        $mech->content_like(qr#/waste/12345">Show upcoming#, "contains link to bin page");
+        $mech->content_contains('Only the account');
     };
-
-    remove_test_subs( 0 );
-
-    subtest 'modify sub user with no name' => sub {
-        $mech->log_out_ok();
-        set_fixed_time('2021-01-09T17:00:00Z');
-        $mech->log_in_ok($nameless_user->email);
-        $mech->get_ok('/waste/12345/garden_modify');
-        $mech->submit_form_ok({ with_fields => { task => 'modify' } });
-        $mech->submit_form_ok({ with_fields => { current_bins => 1, bins_wanted => 2 } });
-        $mech->content_contains('Your name is required');
-        $mech->submit_form_ok({ with_fields => {
-            current_bins => 1,
-            bins_wanted => 2,
-            name => 'A Name',
-        } });
-        $mech->content_contains('A Name');
-        $mech->content_contains('40.00');
-        $mech->content_contains('7.50');
-        $mech->submit_form_ok({ with_fields => { tandc => 1 } });
-        is $sent_params->{items}[0]{amount}, 750, 'correct amount used';
-
-        my ( $token, $new_report, $report_id ) = get_report_from_redirect( $sent_params->{returnUrl} );
-
-        is $new_report->category, 'Garden Subscription', 'correct category on report';
-        is $new_report->title, 'Garden Subscription - Amend', 'correct title on report';
-        is $new_report->get_extra_field_value('payment_method'), 'credit_card', 'correct payment method on report';
-        is $new_report->state, 'unconfirmed', 'report not confirmed';
-
-        $new_report->discard_changes;
-        is $new_report->get_extra_metadata('scpReference'), '12345', 'correct scp reference on report';
-        is $new_report->get_extra_field_value('Subscription_Details_Quantity'), 2, 'correct bin count';
-        is $new_report->get_extra_field_value('Subscription_Details_Container_Type'), 44, 'correct bin type';
-        is $new_report->get_extra_field_value('Container_Instruction_Container_Type'), 44, 'correct container request bin type';
-        is $new_report->get_extra_field_value('Container_Instruction_Action'), 1, 'correct container request action';
-        is $new_report->get_extra_field_value('Container_Instruction_Quantity'), 1, 'correct container request count';
-        is $new_report->name, 'A Name', 'correct name on report';
-
-        $mech->get_ok("/waste/pay_complete/$report_id/$token");
-        is $sent_params->{scpReference}, 12345, 'correct scpReference sent';
-
-        $new_report->discard_changes;
-        is $new_report->state, 'confirmed', 'report confirmed';
-        is $new_report->get_extra_metadata('payment_reference'), '54321', 'correct payment reference on report';
-        $mech->content_like(qr#/waste/12345">Show upcoming#, "contains link to bin page");
-    };
-
-    remove_test_subs( 0 );
 
     subtest 'cancel credit card sub with no record in waste' => sub {
         set_fixed_time('2021-03-09T17:00:00Z'); # After sample data collection
         $mech->log_in_ok($user->email);
         $mech->get_ok('/waste/12345/garden_cancel');
-        $mech->submit_form_ok({ with_fields => { confirm => 1 } });
-
-        my $new_report = FixMyStreet::DB->resultset('Problem')->search(
-            { user_id => $user->id },
-            { order_by => { -desc => 'id' } },
-        )->first;
-
-        is $new_report->category, 'Cancel Garden Subscription', 'correct category on report';
-        is $new_report->get_extra_field_value('Subscription_End_Date'), '2021-03-09', 'cancel date set to current date';
-        is $new_report->get_extra_field_value('Container_Instruction_Action'), 2, 'correct container request action';
-        is $new_report->get_extra_field_value('Container_Instruction_Quantity'), 1, 'correct container request count';
-        is $new_report->state, 'confirmed', 'report confirmed';
+        $mech->content_contains('Only the account');
     };
-
-    remove_test_subs( 0 );
 
     subtest 'check staff renewal with no existing sub' => sub {
         $mech->log_out_ok;

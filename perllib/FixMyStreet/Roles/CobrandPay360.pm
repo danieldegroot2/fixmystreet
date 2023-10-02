@@ -47,6 +47,11 @@ has cancelledDateField => (
     default => 'CancelledDate',
 );
 
+has adHocDelay => (
+    is => 'ro',
+    default => 5,
+);
+
 sub get_config {
     return shift->feature('payment_gateway');
 }
@@ -121,6 +126,12 @@ sub waste_check_existing_dd {
     } else {
         $c->stash->{direct_debit_status} = 'none';
     }
+}
+
+sub waste_dd_paid_date {
+    my ($self, $date) = @_;
+    my ($day, $month, $year) = ( $date =~ m#^(\d+)/(\d+)/(\d+)$#);
+    return ($day, $month, $year);
 }
 
 1;

@@ -371,6 +371,8 @@ sub populate_dd_details : Private {
     if ( $admin_fee ) {
         my $first_payment = $admin_fee + $payment;
         $c->stash->{firstamount} = sprintf( '%.2f', $first_payment / 100 );
+    } elsif ($c->cobrand->moniker eq 'kingston' || $c->cobrand->moniker eq 'sutton') {
+        $c->stash->{firstamount} = sprintf( '%.2f', $payment / 100 );
     }
     $c->stash->{amount} = sprintf( '%.2f', $payment / 100 );
     $c->stash->{payment_date} = $dt;
@@ -468,14 +470,18 @@ sub direct_debit_modify : Private {
                 comments => '',
                 date => $c->cobrand->waste_get_next_dd_day('ad-hoc'),
                 orig_sub => $c->stash->{orig_sub},
+                mandate => $c->stash->{direct_debit_mandate},
         } );
+        $c->detach('/page_error_400_bad_request', ['There was an error requesting a direct debit payment']) unless $one_off_ref;
     }
 
     my $update_ref = $i->amend_plan( {
         payer_reference => $ref,
         amount => sprintf('%.2f', $total / 100),
         orig_sub => $c->stash->{orig_sub},
+        mandate => $c->stash->{direct_debit_mandate},
     } );
+    $c->detach('/page_error_400_bad_request', ['There was an error amending your direct debit']) unless $update_ref;
 }
 
 sub direct_debit_cancel_sub : Private {
@@ -493,6 +499,7 @@ sub direct_debit_cancel_sub : Private {
     my $update_ref = $i->cancel_plan( {
         payer_reference => $ref,
         report => $p,
+        mandate => $c->stash->{direct_debit_mandate},
     } );
 }
 
@@ -1081,15 +1088,18 @@ sub garden_modify : Chained('garden_setup') : Args(0) {
 
         $c->forward('get_original_sub', ['user']);
 
+        if (!$c->stash->{orig_sub} || $c->stash->{direct_debit_status} eq 'none') {
+            $c->stash->{template} = 'waste/garden/wrong_user.html';
+            $c->detach;
+        }
+
         my $service_id = $c->cobrand->garden_service_id;
         my $max_bins = $c->stash->{quantity_max}->{$service_id};
 
         my $payment_method = 'credit_card';
-        if ( $c->stash->{orig_sub} ) {
-            my $orig_sub = $c->stash->{orig_sub};
-            my $orig_payment_method = $orig_sub->get_extra_field_value('payment_method');
-            $payment_method = $orig_payment_method if $orig_payment_method && $orig_payment_method ne 'csc';
-        }
+        my $orig_sub = $c->stash->{orig_sub};
+        my $orig_payment_method = $orig_sub->get_extra_field_value('payment_method');
+        $payment_method = $orig_payment_method if $orig_payment_method && $orig_payment_method ne 'csc';
 
         $c->forward('check_if_staff_can_pay', [ $payment_method ]);
 
@@ -1106,11 +1116,6 @@ sub garden_modify : Chained('garden_setup') : Args(0) {
     }
 
     $c->stash->{first_page} = 'intro';
-    my $allowed = $c->cobrand->call_hook('waste_garden_allow_cancellation') || 'all';
-    if ($allowed eq 'staff' && !$c->stash->{is_staff}) {
-        $c->stash->{first_page} = 'alter';
-    }
-
     $c->forward('form');
 }
 
@@ -1119,12 +1124,14 @@ sub garden_cancel : Chained('garden_setup') : Args(0) {
 
     $c->detach('property_redirect') unless $c->cobrand->garden_current_subscription;
 
-    my $allowed = $c->cobrand->call_hook('waste_garden_allow_cancellation') || 'all';
-    $c->detach('property_redirect') if $allowed eq 'staff' && !$c->stash->{is_staff};
-
     $c->detach( '/auth/redirect' ) unless $c->user_exists;
 
     $c->forward('get_original_sub', ['user']);
+
+    if (!$c->stash->{orig_sub} || $c->stash->{direct_debit_status} eq 'none') {
+        $c->stash->{template} = 'waste/garden/wrong_user.html';
+        $c->detach;
+    }
 
     my $payment_method = $c->forward('get_current_payment_method');
     $c->forward('check_if_staff_can_pay', [ $payment_method ]);
@@ -1245,6 +1252,7 @@ sub get_original_sub : Private {
     }
 
     my $r = $c->stash->{orig_sub} = $p->first;
+    $c->stash->{direct_debit_status} = '';
     $c->cobrand->call_hook(waste_check_existing_dd => $r)
         if $r && ($r->get_extra_field_value('payment_method') || '') eq 'direct_debit';
 }

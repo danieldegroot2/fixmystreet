@@ -3,6 +3,7 @@ use parent 'FixMyStreet::Cobrand::UKCouncils';
 
 use Moo;
 with 'FixMyStreet::Roles::CobrandSLWP';
+with 'FixMyStreet::Roles::Bottomline';
 use Digest::SHA qw(sha1_hex);
 
 sub council_area_id { return 2498; }
@@ -53,8 +54,6 @@ sub waste_check_staff_payment_permissions {
 has lpi_value => ( is => 'ro', default => 'SUTTON' );
 
 sub waste_payment_ref_council_code { "LBS" }
-
-sub waste_garden_allow_cancellation { 'staff' }
 
 sub image_for_unit {
     my ($self, $unit) = @_;

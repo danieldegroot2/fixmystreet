@@ -49,8 +49,6 @@ create_contact({ category => 'Cancel Garden Subscription', email => 'garden_canc
     { code => 'Bin_Delivery_Detail_Containers', required => 1, automated => 'hidden_field' },
     { code => 'Subscription_End_Date', required => 1, automated => 'hidden_field' },
     { code => 'payment_method', required => 1, automated => 'hidden_field' },
-    { code => 'dd_contact_id', required => 0, automated => 'hidden_field' },
-    { code => 'dd_mandate_id', required => 0, automated => 'hidden_field' },
 );
 
 package SOAP::Result;
@@ -602,6 +600,7 @@ FixMyStreet::override_config {
         is $mech->uri->path, '/auth', 'have to be logged in to modify subscription';
         $mech->log_in_ok($user->email);
         $mech->get_ok('/waste/12345/garden_modify');
+        $mech->submit_form_ok({ with_fields => { task => 'modify' } });
         $mech->submit_form_ok({ with_fields => { current_bins => 2, bins_wanted => 3 } });
         $mech->content_contains('3 bins');
         $mech->content_contains('60.00');
@@ -609,6 +608,7 @@ FixMyStreet::override_config {
     };
     subtest 'check modify sub credit card payment' => sub {
         $mech->get_ok('/waste/12345/garden_modify');
+        $mech->submit_form_ok({ with_fields => { task => 'modify' } });
         $mech->submit_form_ok({ with_fields => { current_bins => 1, bins_wanted => 2 } });
         $mech->content_contains('2 bins');
         $mech->content_contains('40.00');
@@ -645,6 +645,7 @@ FixMyStreet::override_config {
 
         $mech->log_in_ok($user->email);
         $mech->get_ok('/waste/12345/garden_modify');
+        $mech->submit_form_ok({ with_fields => { task => 'modify' } });
         $mech->submit_form_ok({ with_fields => { current_bins => 2, bins_wanted => 1 } });
         $mech->content_contains('20.00');
         $mech->content_lacks('Continue to payment');
@@ -819,20 +820,14 @@ FixMyStreet::override_config {
         $mech->content_lacks('Renew your garden waste subscription', 'renew link still on expired subs');
     };
 
-    subtest 'cancel credit card sub, no public users' => sub {
+    subtest 'cancel credit card sub' => sub {
         set_fixed_time('2021-03-09T17:00:00Z'); # After sample data collection
         $mech->log_in_ok($user->email);
-        $mech->get_ok('/waste/12345/garden_cancel');
-        is $mech->uri->path, '/waste/12345', 'redirected';
-    };
-
-    subtest 'cancel credit card sub' => sub {
-        $mech->log_in_ok($staff_user->email);
         $mech->get_ok('/waste/12345/garden_cancel');
         $mech->submit_form_ok({ with_fields => { confirm => 1 } });
 
         my $new_report = FixMyStreet::DB->resultset('Problem')->search(
-            { user_id => $staff_user->id },
+            { user_id => $user->id },
             { order_by => { -desc => 'id' } },
         )->first;
 
@@ -995,6 +990,7 @@ FixMyStreet::override_config {
         $mech->content_contains('Modify your garden waste subscription');
         $mech->content_lacks('Order more garden sacks');
         $mech->get_ok('/waste/12345/garden_modify');
+        $mech->submit_form_ok({ with_fields => { task => 'modify' } });
         $mech->content_lacks('<span id="pro_rata_cost">41.00');
         $mech->content_contains('current_bins');
         $mech->content_contains('bins_wanted');
@@ -1289,51 +1285,8 @@ FixMyStreet::override_config {
 
     # remove all reports
     remove_test_subs( 0 );
+
     $echo->mock('GetServiceUnitsForObject', \&garden_waste_one_bin);
-
-    subtest 'modify sub with no existing waste sub - credit card payment' => sub {
-        set_fixed_time('2021-01-09T17:00:00Z');
-        $mech->log_out_ok();
-        $mech->get_ok('/waste/12345/garden_modify');
-        is $mech->uri->path, '/auth', 'have to be logged in to modify subscription';
-        $mech->log_in_ok($user->email);
-        $mech->get_ok('/waste/12345/garden_modify');
-        $mech->submit_form_ok({ with_fields => { current_bins => 1, bins_wanted => 2 } });
-        $mech->content_contains('40.00');
-        $mech->content_contains('20.00');
-        $mech->submit_form_ok({ with_fields => { tandc => 1 } });
-        my $form = $mech->form_name("cc_form");
-
-        is $form->value("AMOUNT"), 2000, 'correct amount used';
-
-        my ( $token, $new_report, $report_id ) = get_report_from_redirect( $form->value("ACCEPTURL") );
-
-        check_extra_data_pre_confirm($new_report, type => 'Amend', quantity => 2);
-
-        $mech->get_ok("/waste/pay_complete/$report_id/$token?STATUS=9&PAYID=54321");
-        check_extra_data_post_confirm($new_report);
-        $mech->content_like(qr#/waste/12345">Show upcoming#, "contains link to bin page");
-    };
-
-    remove_test_subs( 0 );
-
-    subtest 'cancel credit card sub with no record in waste' => sub {
-        set_fixed_time('2021-03-09T17:00:00Z'); # After sample data collection
-        $mech->log_in_ok($staff_user->email);
-        $mech->get_ok('/waste/12345/garden_cancel');
-        $mech->submit_form_ok({ with_fields => { confirm => 1 } });
-
-        my $new_report = FixMyStreet::DB->resultset('Problem')->search(
-            { user_id => $staff_user->id },
-            { order_by => { -desc => 'id' } },
-        )->first;
-
-        is $new_report->category, 'Cancel Garden Subscription', 'correct category on report';
-        is $new_report->get_extra_field_value('Subscription_End_Date'), '2021-03-09', 'cancel date set to current date';
-        is $new_report->state, 'confirmed', 'report confirmed';
-    };
-
-    remove_test_subs( 0 );
 
     subtest 'check new sub price changes at fixed time' => sub {
         set_fixed_time('2023-01-05T23:59:59Z');

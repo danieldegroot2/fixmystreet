@@ -357,8 +357,10 @@ FixMyStreet::override_config {
         } elsif ( $path =~ m#mandates/[^/]*/payment-plans# ) {
             $dd_sent_params->{'amend_plan'} = $data;
             return {};
-        } elsif ( $method and $method eq 'DELETE' ) {
+        } elsif ( $path =~ m#mandates/[^/]*/status/CANCELLED# ) {
             $dd_sent_params->{cancel_plan} = {};
+            return {};
+        } elsif ( $path eq 'query/execute#getMandateFromReference' ) {
             return {};
         } elsif ( $path eq 'query/execute#getContactFromEmail' ) {
             return {
@@ -712,7 +714,13 @@ FixMyStreet::override_config {
 
         $mech->get_ok('/waste/12345');
         $mech->content_contains('You have a pending garden subscription');
-        $mech->content_lacks('Subscribe to garden waste collection');
+        $mech->content_contains('Subscribe to garden waste collection'); # Nothing in DD system yet, might have given up and want to pay by CC instead
+
+        $dd->mock('get_mandate_from_reference', sub { { status => 'DRAFT' } });
+        $mech->get_ok('/waste/12345');
+        $mech->content_contains('You have a pending garden subscription');
+        $mech->content_lacks('Subscribe to garden waste collection'); # Now pending in DD system
+        $dd->mock('get_mandate_from_reference', sub { });
 
         $mech->email_count_is( 1, "email sent for direct debit sub");
         my $email = $mech->get_email;
@@ -1003,11 +1011,10 @@ FixMyStreet::override_config {
 
     remove_test_subs( $p->id );
     $p->update_extra_field({ name => 'payment_method', value => 'direct_debit' });
-    $p->set_extra_metadata('dd_mandate_id', '100');
-    $p->set_extra_metadata('dd_contact_id', '101');
     $p->update;
 
     subtest 'cancel direct debit sub' => sub {
+        $dd->mock('get_mandate_from_reference', sub { { status => 'ACTIVE', payerId => 619, id => 444 } });
         $mech->get_ok('/waste/12345/garden_cancel');
         $mech->submit_form_ok({ with_fields => { confirm => 1 } });
 
@@ -1024,6 +1031,7 @@ FixMyStreet::override_config {
 
         $mech->get_ok('/waste/12345');
         $mech->content_contains('Cancellation in progress');
+        $dd->mock('get_mandate_from_reference', sub { });
     };
 
     remove_test_subs( $p->id );
@@ -1060,7 +1068,7 @@ FixMyStreet::override_config {
         $mech->submit_form_ok({ with_fields => { tandc => 1 } });
 
         $mech->content_like( qr/ddregularamount[^>]*"20.00"/, 'payment amount correct');
-        $mech->content_lacks( "ddfirstamount", "no different first payment");
+        $mech->content_like( qr/ddfirstamount[^>]*"20.00"/, 'first payment amount the same');
         $mech->content_like( qr{rbk/rbk_user_form}, 'uses standard form');
 
         my ($token, $report_id) = ( $mech->content =~ m#reference:([^\^]*)\^report_id:(\d+)"# );
@@ -1156,6 +1164,7 @@ FixMyStreet::override_config {
         $mech->submit_form_ok({ with_fields => { container_choice => 'bin' } });
         $mech->submit_form_ok({ with_fields => { existing => 'no' } });
         $mech->content_like(qr#Total to pay now: £<span[^>]*>0.00#, "initial cost set to zero");
+        $mech->content_contains('"direct_debit"', 'Direct debit for bins');
         $mech->submit_form_ok({ with_fields => {
             payment_method => 'credit_card',
             current_bins => 0,
@@ -1216,6 +1225,7 @@ FixMyStreet::override_config {
         $mech->submit_form_ok({ with_fields => { container_choice => 'sack' } });
         $mech->content_like(qr#Total per year: £<span[^>]*>41.00#, "initial cost correct");
         $mech->content_lacks('"cheque"');
+        $mech->content_lacks('"direct_debit"', 'No direct debit for sacks');
         $mech->submit_form_ok({ with_fields => {
             payment_method => 'credit_card',
             name => 'Test McTest',
@@ -1655,12 +1665,11 @@ FixMyStreet::override_config {
     $p->title('Garden Subscription - New');
     $p->update_extra_field({ name => 'payment_method', value => 'direct_debit' });
     $p->set_extra_metadata('payerReference', 'RBK-' . $p->id . '1000000002');
-    $p->set_extra_metadata('dd_mandate_id', '100');
-    $p->set_extra_metadata('dd_contact_id', '101');
     $p->update;
 
     subtest 'check modify sub direct debit payment' => sub {
         set_fixed_time('2021-01-09T17:00:00Z'); # After sample data collection
+        $dd->mock('get_mandate_from_reference', sub { { status => 'ACTIVE', payerId => 619, id => 444 } });
         $mech->log_in_ok($user->email);
         $mech->get_ok('/waste/12345/garden_modify');
         $mech->submit_form_ok({ with_fields => { task => 'modify' } });
@@ -1684,7 +1693,7 @@ FixMyStreet::override_config {
         is $new_report->get_extra_field_value('pro_rata'), '2000', 'pro rata payment correctly set';
         is $new_report->get_extra_field_value('admin_fee'), '1500', 'adming fee payment correctly set';
 
-        my $ad_hoc_payment_date = '2021-01-15T17:00:00';
+        my $ad_hoc_payment_date = '2021-01-22T17:00:00Z';
 
         is_deeply $dd_sent_params->{one_off_payment}, {
             comments => $new_report->id,
@@ -1693,57 +1702,12 @@ FixMyStreet::override_config {
             paymentType => 'DEBIT',
         }, "correct direct debit ad hoc payment params sent";
         is $dd_sent_params->{amend_plan}->{regularAmount}, '40.00', "correct direct debit amendment params sent";
+        $dd->mock('get_mandate_from_reference', sub { });
     };
 
     $dd_sent_params = {};
 
     # remove all reports
-    remove_test_subs( 0 );
-
-    subtest 'modify sub with no existing waste sub - credit card payment' => sub {
-        set_fixed_time('2021-01-09T17:00:00Z');
-        $mech->log_out_ok();
-        $mech->get_ok('/waste/12345/garden_modify');
-        is $mech->uri->path, '/auth', 'have to be logged in to modify subscription';
-        $mech->log_in_ok($user->email);
-        $mech->get_ok('/waste/12345/garden_modify');
-        $mech->submit_form_ok({ with_fields => { task => 'modify' } });
-        $mech->submit_form_ok({ with_fields => { current_bins => 1, bins_wanted => 2 } });
-        $mech->content_contains('40.00');
-        $mech->content_contains('15.00');
-        $mech->content_contains('35.00');
-        $mech->submit_form_ok({ with_fields => { tandc => 1 } });
-        is $sent_params->{items}[0]{amount}, 2000, 'correct amount used';
-        is $sent_params->{items}[1]{amount}, 1500, 'correct amount used';
-
-        my ( $token, $new_report, $report_id ) = get_report_from_redirect( $sent_params->{returnUrl} );
-
-        check_extra_data_pre_confirm($new_report, type => 'Amend', quantity => 2);
-
-        $mech->get_ok("/waste/pay_complete/$report_id/$token");
-        is $sent_params->{scpReference}, 12345, 'correct scpReference sent';
-        check_extra_data_post_confirm($new_report);
-        $mech->content_like(qr#/waste/12345">Show upcoming#, "contains link to bin page");
-    };
-
-    remove_test_subs( 0 );
-
-    subtest 'cancel credit card sub with no record in waste' => sub {
-        set_fixed_time('2021-03-09T17:00:00Z'); # After sample data collection
-        $mech->log_in_ok($user->email);
-        $mech->get_ok('/waste/12345/garden_cancel');
-        $mech->submit_form_ok({ with_fields => { confirm => 1 } });
-
-        my $new_report = FixMyStreet::DB->resultset('Problem')->search(
-            { user_id => $user->id },
-            { order_by => { -desc => 'id' } },
-        )->first;
-
-        is $new_report->category, 'Cancel Garden Subscription', 'correct category on report';
-        is $new_report->get_extra_field_value('Subscription_End_Date'), '2021-03-09', 'cancel date set to current date';
-        is $new_report->state, 'confirmed', 'report confirmed';
-    };
-
     remove_test_subs( 0 );
 
     subtest 'check staff renewal with no existing sub' => sub {
