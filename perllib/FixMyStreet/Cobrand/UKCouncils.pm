@@ -717,11 +717,7 @@ sub csv_active_planned_reports {
     my @cobrand_users = FixMyStreet::DB->resultset('User')->find({ from_body => $self->body->id});
 
     for my $user (@cobrand_users) {
-        for (my $problem = $user->active_planned_reports->next) {
-            if ($problem) {
-                $reports_to_user{$problem->id} = $user->name;
-            }
-        }
+        map { $reports_to_user{$_->id} = $user->name } $user->active_planned_reports->all;
     }
     return \%reports_to_user;
 }
