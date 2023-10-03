@@ -94,15 +94,12 @@ sub dashboard_export_problems_add_columns {
     my $user_lookup = $self->csv_staff_users;
     my $userroles = $self->csv_staff_roles($user_lookup);
 
-    my $problems_to_user = $self->csv_active_planned_reports;
-
     $csv->csv_extra_data(sub {
         my $report = shift;
 
         my $by = $report->get_extra_metadata('contributed_by');
         my $staff_user = '';
         my $staff_role = '';
-        my $assigned_to = '';
         if ($by) {
             $staff_user = $self->csv_staff_user_lookup($by, $user_lookup);
             $staff_role = join(',', @{$userroles->{$by} || []});
@@ -111,7 +108,7 @@ sub dashboard_export_problems_add_columns {
             user_name_display => $report->name,
             staff_user => $staff_user,
             staff_role => $staff_role,
-            assigned_to => $problems_to_user->{$report->id} || '',
+            assigned_to => $report->shortlisted_user ? $report->shortlisted_user->name : '',
         };
     });
 }

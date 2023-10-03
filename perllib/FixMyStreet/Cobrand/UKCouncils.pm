@@ -710,18 +710,6 @@ sub csv_staff_roles {
     return \%userroles;
 }
 
-sub csv_active_planned_reports {
-    my ($self) = @_;
-
-    my %reports_to_user;
-    my @cobrand_users = FixMyStreet::DB->resultset('User')->find({ from_body => $self->body->id});
-
-    for my $user (@cobrand_users) {
-        map { $reports_to_user{$_->id} = $user->name } $user->active_planned_reports->all;
-    }
-    return \%reports_to_user;
-}
-
 sub nearby_distances {
     my $self = shift;
     return $self->feature('nearby_distances') || $self->next::method();
