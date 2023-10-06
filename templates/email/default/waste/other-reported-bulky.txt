@@ -1,4 +1,8 @@
-Subject: Bulky waste collection service - reference [% report.id %]
+Subject: Bulky waste collection service - reference [%
+  IF cobrand.moniker == 'kingston'; "RBK-";
+  ELSIF cobrand.moniker == 'sutton'; "LBS-";
+  END;
+%][% report.id %]
 
 [%
 USE pounds = format('%.2f');
@@ -13,15 +17,12 @@ Dear [% report.name %],
 
 [% report.detail %]
 
+Date booking made: [% report_date %]
+
 Collection date: [% collection_date %]
 
 Items to be collected:
-[% FOR item IN item_list %]
-    - [% item.value %]
-[% IF item.message %]
-        - [% item.message %]
-[% END %]
-[% END %]
+[% INCLUDE 'waste/_bulky_list.txt' %]
 
 [% IF payment ~%]
 Total cost: £[% pounds(payment / 100) %]
@@ -44,6 +45,15 @@ If you wish to cancel your booking, please visit:
 Please check the bulky waste collection page on the council’s website for information about this service. This includes when and where to put your items out for collection, cancelling the service and obtaining a refund:
 
     https://www.peterborough.gov.uk/residents/rubbish-and-recycling/other-waste-collections
+
+[% ELSIF cobrand.moniker == 'sutton' || cobrand.moniker == 'kingston' %]
+Items must be accessible and clearly visible from the front of your house, placed as close to the pavement as possible (but not on it). Our collections crews will not enter your home or retrieve items from your back garden.
+If you live in a block of flats, you can place your items (on the morning of collection) in your communal bin store area. If the bin store has an access code you should have supplied that during the booking as we won't be able to collect otherwise.
+Items must be out for collection by [% cobrand.bulky_nice_collection_time %] on the collection day.
+
+[% IF cobrand.feature('waste_features').bulky_tandc_link %]
+Please check you have read the terms and conditions [% cobrand.feature('waste_features').bulky_tandc_link %]
+[% END %]
 
 [% END %]
 

@@ -47,6 +47,7 @@ sub item_list : Private {
 
     my $max_items = $c->cobrand->bulky_items_maximum;
     my $field_list = [];
+
     for my $num ( 1 .. $max_items ) {
         push @$field_list,
             "item_$num" => {
@@ -69,13 +70,19 @@ sub item_list : Private {
                 type => 'FileIdPhoto',
                 num_photos_required => 0,
                 linked_field => "item_photo_$num",
+            },
+            "item_notes_${num}" => {
+                type => 'TextArea',
+                label => 'Item note (optional)',
+                maxlength => 100,
+                tags => { hint => 'Describe the item to help our crew pick up the right thing' },
             };
     }
 
     $c->stash->{page_list} = [
         add_items => {
             fields => [ 'continue',
-                map { ("item_$_", "item_photo_$_", "item_photo_${_}_fileid") } ( 1 .. $max_items ),
+                map { ("item_$_", "item_photo_$_", "item_photo_${_}_fileid", "item_notes_$_") } ( 1 .. $max_items ),
             ],
             template => 'waste/bulky/items.html',
             title => 'Add items for collection',
@@ -151,30 +158,14 @@ sub view : Private {
 
     my $p = $c->stash->{problem};
 
-    if (!$c->stash->{property}) {
-        $c->stash->{property} = $c->cobrand->call_hook(look_up_property => $p->get_extra_field_value('property_id'));
-    }
+    $c->stash->{property} = {
+        id => $p->get_extra_field_value('property_id'),
+        address => $p->get_extra_metadata('property_address'),
+    };
 
     $c->stash->{template} = 'waste/bulky/summary.html';
 
-    # And include moderation changes...
-    my $user_can_moderate = $c->user_exists && $c->user->can_moderate($p);
-    my @combined;
-    if ($user_can_moderate) {
-        my @history = $p->moderation_history;
-        my $last_history = $p;
-        foreach my $history (@history) {
-            push @combined, [ $history->created, {
-                id => 'm' . $history->id,
-                type => 'moderation',
-                last => $last_history,
-                entry => $history,
-            } ];
-            $last_history = $history;
-        }
-    }
-    @combined = map { $_->[1] } sort { $a->[0] <=> $b->[0] } @combined;
-    $c->stash->{updates} = \@combined;
+    $c->forward('/report/load_updates');
 
     my $saved_data = $c->cobrand->waste_reconstruct_bulky_data($p);
     $c->stash->{form} = {
@@ -262,6 +253,13 @@ sub process_bulky_amend : Private {
 
     amend_extra_data($c, $p, $data);
 
+    if ($c->cobrand->bulky_cancel_by_update) {
+        # TODO In this case we would want to update the event; we can't both
+        # cancel the booking by update and also resend it as a new booking
+        # (which works okay when a new cancellation event is being created)
+        die "Not currently functional";
+    }
+
     $c->forward('add_cancellation_report');
 
     $p->resend;
@@ -320,7 +318,12 @@ sub add_cancellation_report : Private {
         });
     } else {
         $c->forward( '/waste/add_report', [ \%data ] ) or return;
+        if ($c->stash->{amending_booking}) {
+            $c->stash->{report}->set_extra_metadata(bulky_amendment_cancel => 1);
+            $c->stash->{report}->update;
+        }
     }
+    return 1;
 }
 
 sub process_bulky_cancellation : Private {

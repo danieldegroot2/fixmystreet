@@ -60,6 +60,10 @@ sub image_for_unit {
         return "";
     }
 
+    if ($unit->{service_id} eq 'bulky') {
+        return "$base/bulky-black";
+    }
+
     # Base mixed recycling (2241) on the container itself
     my %containers = map { $_ => 1 } @{$unit->{request_containers}};
     return "$base/bin-green" if $containers{12} && $self->{c}->stash->{container_recycling_bin};
@@ -81,5 +85,14 @@ sub image_for_unit {
     };
     return $images->{$service_id};
 }
+
+=head2 Bulky waste collection
+
+Kingston starts collections at 6:30am, and lets you cancel up until then.
+
+=cut
+
+sub bulky_collection_time { { hours => 6, minutes => 30 } }
+sub bulky_cancellation_cutoff_time { { hours => 6, minutes => 30 } }
 
 1;

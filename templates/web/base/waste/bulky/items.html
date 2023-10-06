@@ -74,6 +74,10 @@ END; END %]
     [% photo = 'item_photo_' _ num %]
     [% photo_fileid = photo _ '_fileid' %]
     [% PROCESS form override_fields = [ photo, photo_fileid ] %]
+    [% IF c.cobrand.call_hook('bulky_show_individual_notes') %]
+      [% notes = 'item_notes_' _ num %]
+      [% PROCESS form override_fields = [ notes ] %]
+    [% END %]
 
     [% IF num > 1 %]
     <button type="button" class="delete-item btn-secondary govuk-!-margin-bottom-3">Delete item</button>
@@ -82,14 +86,16 @@ END; END %]
     <hr>
   </div>
   [% END %]
-  <button type="button" id="add-new-item" class="btn-secondary govuk-!-margin-bottom-3" aria-label="Add item">+ Add item</button>
+  <button type="button" id="add-new-item" class="btn-secondary govuk-!-margin-bottom-3" aria-label="Add item">+
+    [% IF c.cobrand.moniker == 'kingston' OR c.cobrand.moniker == 'sutton' ~%]
+      Add another item
+    [%~ ELSE ~%]
+      Add item
+    [%~ END ~%]
+  </button>
 
     <p>
-      [% IF c.cobrand.bulky_per_item_costs %]
-        Total cost: £<span id="js-bulky-total">[% pounds(total) %]</span>
-      [% ELSE %]
-        Total cost: £[% pounds(total) %]
-      [% END %]
+        Total cost: £<span data-pricing="[% c.cobrand.bulky_pricing_strategy %]" id="js-bulky-total">[% pounds(total) %]</span>
     </p>
 
   [% PROCESS form override_fields = [ 'continue', 'saved_data', 'token', 'process', 'unique_id' ] %]

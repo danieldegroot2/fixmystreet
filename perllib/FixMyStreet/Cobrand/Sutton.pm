@@ -66,6 +66,9 @@ sub image_for_unit {
         return "$base/caddy-brown-large" if $container == 24;
     }
     my $service_id = $unit->{service_id};
+    if ($service_id eq 'bulky') {
+        return "$base/bulky-black";
+    }
     if ($service_id == 2243 && $unit->{schedule} =~ /fortnight/i) {
         # Communal fortnightly is a wheelie bin, not a large bin
         return "$base/bin-brown";
@@ -86,7 +89,7 @@ sub image_for_unit {
     return $images->{$service_id};
 }
 
-sub garden_waste_cc_munge_form_details {
+sub waste_cc_munge_form_details {
     my ($self, $c) = @_;
 
     my $sha_passphrase = $self->feature('payment_gateway')->{sha_passphrase};
@@ -101,8 +104,15 @@ sub garden_waste_cc_munge_form_details {
 
     $c->stash->{redirect_url} = $url;
 
+    my $pspid;
+    if ($c->stash->{report}->category eq 'Bulky collection') {
+        $pspid = $c->stash->{payment_details}->{pspid_bulky};
+    } else {
+        $pspid = $c->stash->{payment_details}->{pspid};
+    }
+
     my $form_params = {
-        'PSPID' => $c->stash->{payment_details}->{pspid},
+        'PSPID' => $pspid,
         'ORDERID' => $c->stash->{reference},
         'AMOUNT' => $c->stash->{payment_amount},
         'CURRENCY' => 'GBP',
@@ -167,5 +177,14 @@ sub garden_cc_check_payment_status {
         return undef;
     }
 }
+
+=head2 Bulky waste collection
+
+Sutton starts collections at 6am, and lets you cancel up until 6am.
+
+=cut
+
+sub bulky_collection_time { { hours => 6, minutes => 0 } }
+sub bulky_cancellation_cutoff_time { { hours => 6, minutes => 0 } }
 
 1;

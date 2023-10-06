@@ -1,11 +1,15 @@
 use CGI::Simple;
 use Test::MockModule;
 use Test::Output;
+use MIME::Base64;
+use Path::Tiny;
 use FixMyStreet::TestMech;
 use FixMyStreet::Script::Alerts;
 use FixMyStreet::Script::Reports;
 use FixMyStreet::SendReport::Open311;
+
 my $mech = FixMyStreet::TestMech->new;
+my $sample_file = path(__FILE__)->parent->child("zurich-logo_portal.x.jpg");
 
 # disable info logs for this test run
 FixMyStreet::App->log->disable('info');
@@ -24,6 +28,14 @@ my $kingston = $mech->create_body_ok( 2480, 'Kingston upon Thames Council', {
     comment_user => $user,
 }, {
     cobrand => 'kingston',
+});
+
+FixMyStreet::DB->resultset('ResponseTemplate')->create({
+    body_id => $body->id,
+    auto_response => 1,
+    title => 'Completed bulky waste',
+    text => 'Your collection has now been completed',
+    state => 'fixed - council',
 });
 
 $mech->create_contact_ok(
@@ -173,11 +185,20 @@ subtest 'updating of waste reports' => sub {
             my ($key, $type, $value) = ${$args[3]->value}->value;
             my $external_id = ${$value->value}->value->value;
             my ($waste, $event_state_id, $resolution_code) = split /-/, $external_id;
+            my $data = [];
+            if ($external_id eq 'waste-with-image') {
+                push @$data, {
+                    DatatypeName => 'Post Collection Photo',
+                    Value => encode_base64($sample_file->slurp_raw),
+                };
+            }
             return SOAP::Result->new(result => {
+                Guid => $external_id,
                 EventStateId => $event_state_id,
                 EventTypeId => '1638',
                 LastUpdatedDate => { OffsetMinutes => 60, DateTime => $date },
                 ResolutionCodeId => $resolution_code,
+                Data => { ExtensibleDatum => $data },
             });
         } elsif ($method eq 'GetEventType') {
             return SOAP::Result->new(result => {
@@ -290,6 +311,47 @@ EOF
         is $report->comments->count, 3, 'A new update';
         $report->discard_changes;
         is $report->state, 'investigating', 'A state change';
+
+        FixMyStreet::Script::Alerts::send_updates();
+        $mech->clear_emails_ok;
+
+        $report->update_extra_field({ name => 'Collection_Date', value => '2023-09-26T00:00:00Z' });
+        $report->set_extra_metadata( item_1 => 'Armchair' );
+        $report->set_extra_metadata( item_2 => 'BBQ' );
+        $report->update({ category => 'Bulky collection', external_id => 'waste-with-image' });
+        $in = <<EOF;
+<?xml version="1.0" encoding="UTF-8"?>
+<Envelope>
+  <Header>
+    <Action>action</Action>
+    <Security><UsernameToken><Username>un</Username><Password>password</Password></UsernameToken></Security>
+  </Header>
+  <Body>
+    <NotifyEventUpdated>
+      <event>
+        <Guid>waste-with-image</Guid>
+        <EventTypeId>1638</EventTypeId>
+        <EventStateId>15004</EventStateId>
+        <ResolutionCodeId></ResolutionCodeId>
+      </event>
+    </NotifyEventUpdated>
+  </Body>
+</Envelope>
+EOF
+        $mech2->post('/waste/echo', Content_Type => 'text/xml', Content => $in);
+        is $report->comments->count, 4, 'A new update';
+        $report->discard_changes;
+        is $report->state, 'fixed - council', 'A state change';
+        my $update = FixMyStreet::DB->resultset("Comment")->search(undef, { order_by => { -desc => 'id' } })->first;
+        is $update->photo, '34c2a90ba9eb225b87ca1bac05fddd0e08ac865f.jpeg';
+
+        FixMyStreet::Script::Alerts::send_updates();
+        my $body = $mech->get_text_body_from_email;
+        my $id = $report->id;
+        like $body, qr/reference number is LBS-$id/;
+        like $body, qr/Armchair/;
+        like $body, qr/26 September/;
+        like $body, qr/Your collection has now been completed/;
     };
 };
 

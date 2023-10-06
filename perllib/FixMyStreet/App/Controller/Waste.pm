@@ -214,7 +214,7 @@ sub pay : Path('pay') : Args(0) {
         }
     } else {
         $c->forward('populate_cc_details');
-        $c->cobrand->call_hook('garden_waste_cc_munge_form_details' => $c);
+        $c->cobrand->call_hook('waste_cc_munge_form_details' => $c);
         $c->stash->{template} = 'waste/cc.html';
         $c->detach;
     }
@@ -254,6 +254,11 @@ sub pay_complete : Path('pay_complete') : Args(2) {
         $c->stash->{reference} = $ref;
         $c->stash->{action} = $p->title eq 'Garden Subscription - Amend' ? 'add_containers' : 'new_subscription';
         $c->forward( 'confirm_subscription', [ $ref ] );
+        if ($c->cobrand->suppress_report_sent_email($p)) {
+            # Send bulky confirmation email after payment confirmation (see
+            # the suppress_report_sent_email in CobrandSLWP.pm)
+            $p->send_logged_email({ %{$c->stash} }, 0, $c->cobrand);
+        }
     } else {
         $c->stash->{template} = 'waste/pay_error.html';
         $c->detach;
@@ -301,6 +306,15 @@ sub confirm_subscription : Private {
     $p->confirm;
     $c->forward( '/report/new/create_related_things', [ $p ] );
     $p->update;
+
+    if ($already_confirmed) {
+        my $payment = $p->get_extra_field_value('payment');
+        $payment = sprintf( '%.2f', $payment / 100 );
+        $p->add_to_comments({
+            text => "Payment confirmed, reference $reference, amount £$payment",
+            user => $p->user,
+        });
+    }
 }
 
 sub cancel_subscription : Private {
@@ -320,7 +334,7 @@ sub populate_payment_details : Private {
 
     my $address = $c->stash->{property}{address};
 
-    my @parts = split ',', $address;
+    my @parts = split /\s*,\s*/, $address;
 
     my $name = $c->stash->{report}->name;
     my ($first, $last) = split /\s/, $name, 2;
@@ -336,7 +350,12 @@ sub populate_payment_details : Private {
 
     my $payment_details = $c->cobrand->feature('payment_gateway');
     $c->stash->{payment_details} = $payment_details;
-    $c->stash->{reference} = substr($c->cobrand->waste_payment_ref_council_code . '-' . $p->id . '-' . $c->stash->{property}{uprn}, 0, 18);
+
+    if ($c->cobrand->moniker eq 'sutton' && $p->category eq 'Bulky collection') {
+        $c->stash->{reference} = $p->id . substr(mySociety::AuthToken::random_token(), 0, 8);
+    } else {
+        $c->stash->{reference} = substr($c->cobrand->waste_payment_ref_council_code . '-' . $p->id . '-' . $c->stash->{property}{uprn}, 0, 18);
+    }
     $c->stash->{lookup} = $reference;
 }
 
@@ -1519,27 +1538,28 @@ sub add_report : Private {
     $c->forward('setup_categories_and_bodies') unless $c->stash->{contacts};
     $c->forward('/report/new/non_map_creation', [['/waste/remove_name_errors']]) or return;
 
+    my $report = $c->stash->{report};
+
     # store photos
     foreach (grep { /^(item|location)_photo/ } keys %$data) {
         next unless $data->{$_};
         my $k = $_;
         $k =~ s/^(.+)_fileid$/$1/;
-        $c->stash->{report}->set_extra_metadata($k => $data->{$_});
+        $report->set_extra_metadata($k => $data->{$_});
     }
 
+    $report->set_extra_metadata(property_address => $c->stash->{property}{address});
     $c->cobrand->call_hook('save_item_names_to_report' => $data);
-    $c->stash->{report}->update;
+    $report->update;
 
     # we don't want to confirm reports that are for things that require a payment because
     # we need to get the payment to confirm them.
     if ( $no_confirm ) {
-        my $report = $c->stash->{report};
         $report->state('unconfirmed');
         $report->confirmed(undef);
         $report->update;
     } else {
         if ($c->cobrand->call_hook('waste_never_confirm_reports')) {
-            my $report = $c->stash->{report};
             $report->confirm;
             $report->update;
         }
