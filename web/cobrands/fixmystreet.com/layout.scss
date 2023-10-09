@@ -382,26 +382,11 @@ footer {
     }
 }
 
-.fms-pro-promo__stats {
-    width: 56%;
-    margin-left: 4%;
-    border-bottom: none;
-    background: #fff;
-    position: relative;
+.fms-footer-cta {
+    flex-direction: row;
 
-    &:before {
-        content: "NEW";
-        display: block;
-        position: absolute;
-        top: -0.5em;
-        right: 0.5em;
-        background: $primary;
-        font-weight: bold;
-        width: 4em;
-        line-height: 4em;
-        text-align: center;
-        border-radius: 100%;
-        transform: rotate(5deg);
+    &__item {
+        flex-basis: 33%;
     }
 }
 
