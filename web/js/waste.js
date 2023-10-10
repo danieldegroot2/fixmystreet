@@ -146,7 +146,7 @@ $(function() {
         message += 'you can add up to ' + (base_max - count) + ' more ' + (base_max - count === 1 ? 'item' : 'items') + '.';
         if (count && count < band1_max) {
             message += ' Adding another item will not increase the cost';
-        } else if (count && count === band1_max) {
+        } else if (count && count == band1_max) {
             message += ' Adding another item will increase the cost to £' + base_price.toFixed(2);
         } else if (count && count < base_max) {
         } else {
