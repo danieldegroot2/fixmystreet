@@ -311,11 +311,12 @@ sub add_cancellation_report : Private {
     $c->cobrand->call_hook( "waste_munge_bulky_cancellation_data", \%data );
 
     if ($c->cobrand->bulky_cancel_by_update) {
-        $collection_report->add_to_comments({
+        my $comment = $collection_report->add_to_comments({
             text => 'Booking cancelled by customer',
             user => $collection_report->user,
             extra => { bulky_cancellation => 1 },
         });
+        $collection_report->cancel_update_alert($comment->id);
     } else {
         $c->forward( '/waste/add_report', [ \%data ] ) or return;
         if ($c->stash->{amending_booking}) {
