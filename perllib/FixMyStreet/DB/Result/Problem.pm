@@ -1352,4 +1352,29 @@ has comment_count => (
     },
 );
 
+=item cancel_update_alert
+
+Takes a comment id as single argument and adds to the AlertSent
+table so an alert is not sent when FixMyStreet::Script::Alerts::send_updates
+is run
+
+=cut
+
+sub cancel_update_alert {
+    my ($self, $comment_id) = @_;
+
+    my @alerts = FixMyStreet::DB->resultset('Alert')->search( {
+        alert_type => 'new_updates',
+        parameter  => $self->id,
+        confirmed  => 1,
+    } );
+
+    for my $alert (@alerts) {
+        FixMyStreet::DB->resultset('AlertSent')->find_or_create( {
+            alert_id  => $alert->id,
+            parameter => $comment_id,
+        } );
+    }
+};
+
 1;
