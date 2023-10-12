@@ -405,14 +405,13 @@ $.extend(fixmystreet.utils, {
       },
 
       setup_geolocation: function() {
-          if (!OpenLayers.Control.Geolocate || !fixmystreet.map ||
-              !fixmystreet.utils || !fixmystreet.utils.parse_query_string ||
-              fixmystreet.utils.parse_query_string().geolocate !== '1'
-          ) {
+          if (!OpenLayers.Control.Geolocate || !fixmystreet.map) {
               return;
           }
 
           var layer;
+          var control;
+          var recentre_on_location = false;
 
           function createCircleOfUncertainty(e) {
               var loc = new OpenLayers.Geometry.Point(e.point.x, e.point.y);
@@ -482,16 +481,39 @@ $.extend(fixmystreet.utils, {
                   // Don't forget to update the position of the GPS marker.
                   marker.move(new OpenLayers.LonLat(e.point.x, e.point.y));
               }
+
+              if (recentre_on_location) {
+                fixmystreet.map.setCenter(new OpenLayers.LonLat(e.point.x, e.point.y));
+                recentre_on_location = false;
+              }
           }
 
-          var control = new OpenLayers.Control.Geolocate({
-              bind: false, // Don't want the map to pan to each location
-              watch: true,
-              enableHighAccuracy: true
+          function addControlToMap() {
+            if (control) {
+                return;
+            }
+            control = new OpenLayers.Control.Geolocate({
+                bind: false, // Don't want the map to pan to each location
+                watch: true,
+                enableHighAccuracy: true
+            });
+            control.events.register("locationupdated", null, updateGeolocationMarker);
+            fixmystreet.map.addControl(control);
+            control.activate();
+          }
+
+          if (fixmystreet.utils && fixmystreet.utils.parse_query_string &&
+              fixmystreet.utils.parse_query_string().geolocate === '1') {
+                // loading a page with geolocate=1 in the query string so add
+                // and activate the control immediately
+                addControlToMap();
+          }
+
+          $(".js-recentre-map").click(function() {
+            recentre_on_location = true;
+            addControlToMap();
+            control.getCurrentLocation();
           });
-          control.events.register("locationupdated", null, updateGeolocationMarker);
-          fixmystreet.map.addControl(control);
-          control.activate();
       },
       toggle_base: function(e) {
           e.preventDefault();
