@@ -1681,7 +1681,7 @@ fixmystreet.message_controller = (function() {
             } else if (fixmystreet.assets.selectedFeature()) {
                 fixmystreet.body_overrides.allow_send(layer.fixmystreet.body);
                 responsibility_off(layer, 'road');
-            } else if ( (criterion && criterion()) || is_only_body(layer.fixmystreet.body) ) {
+            } else if ( ( typeof criterion === 'function' && criterion()) || is_only_body(layer.fixmystreet.body) ) {
                 responsibility_on(layer, 'road');
             }
         },
