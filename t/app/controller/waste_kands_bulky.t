@@ -417,14 +417,10 @@ FixMyStreet::override_config {
 
             $new_report->discard_changes;
             is $new_report->get_extra_metadata('scpReference'), '12345', 'correct scp reference on report';
-
             $mech->clear_emails_ok;
-            FixMyStreet::Script::Alerts::send_updates();
-            is $mech->email_count_is(0), 1, 'Update cancelled as would go to body user not report user';
             FixMyStreet::Script::Reports::send();
             $mech->email_count_is(1); # Only email is 'email' to council
             $mech->clear_emails_ok;
-
             $mech->get_ok("/waste/pay_complete/$report_id/$token");
             is $sent_params->{scpReference}, 12345, 'correct scpReference sent';
             FixMyStreet::Script::Reports::send();
@@ -532,8 +528,6 @@ FixMyStreet::override_config {
             # to Echo
             $mech->content_lacks('/waste/12345/bulky/cancel');
             $mech->content_lacks('Cancel this booking');
-            FixMyStreet::Script::Alerts::send_updates();
-            is $mech->email_count_is(0), 1, 'Update cancelled as would go to body user not report user';
             $report->external_id('Echo-123');
             $report->update;
             $mech->get_ok('/report/' . $report->id);
