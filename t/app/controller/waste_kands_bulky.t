@@ -13,9 +13,10 @@ my $mech = FixMyStreet::TestMech->new;
 my $sample_file = path(__FILE__)->parent->child("sample.jpg");
 
 my $user = $mech->create_user_ok('bob@example.org');
+my $body_user = $mech->create_user_ok('body@example.org');
 
 my $body = $mech->create_body_ok( 2480, 'Kingston upon Thames Council',
-    {}, { cobrand => 'kingston' } );
+    { comment_user => $body_user }, { cobrand => 'kingston' } );
 $body->set_extra_metadata(
     wasteworks_config => {
         base_price => '6100',
@@ -425,12 +426,15 @@ FixMyStreet::override_config {
             is $sent_params->{scpReference}, 12345, 'correct scpReference sent';
             FixMyStreet::Script::Reports::send();
             $catch_email = $mech->get_email;
+            $mech->clear_emails_ok;
             $new_report->discard_changes;
             is $new_report->get_extra_metadata('payment_reference'), '54321', 'correct payment reference on report';
 
             my $update = $new_report->comments->first;
             is $update->state, 'confirmed';
             is $update->text, 'Payment confirmed, reference 54321, amount £40.00';
+            FixMyStreet::Script::Alerts::send_updates();
+            $mech->email_count_is(0);
         };
 
         subtest 'Bulky goods email confirmation' => sub {
@@ -464,7 +468,6 @@ FixMyStreet::override_config {
             like $confirmation_email_html, qr#http://kingston.example.org/waste/12345/bulky/cancel#, 'Includes cancellation link (html mail)';
             like $confirmation_email_html, qr/a href="tandc_link"/, 'Includes terms and conditions (html mail)';
             like $confirmation_email_html, qr/Items must be out for collection by 6:30am on the collection day/, 'Includes information about collection (html mail)';
-            $mech->clear_emails_ok;
         };
 
         subtest 'Confirmation page' => sub {

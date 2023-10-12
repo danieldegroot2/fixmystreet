@@ -312,7 +312,7 @@ sub confirm_subscription : Private {
         $payment = sprintf( '%.2f', $payment / 100 );
         my $comment = $p->add_to_comments({
             text => "Payment confirmed, reference $reference, amount £$payment",
-            user => $p->user,
+            user => $c->cobrand->body->comment_user || $p->user,
         });
         $p->cancel_update_alert($comment->id);
     }
